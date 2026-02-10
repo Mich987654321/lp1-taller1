@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -12,7 +13,8 @@ func asyncCuadrado(x int) <-chan int {
 	ch := make(chan int)
 	go func() {
 		defer close(ch)
-		time.Sleep(time.Duration(x) * 100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
+		ch <- x * x
 		//simular trabajo
 
 		ch <- x * x
@@ -21,12 +23,24 @@ func asyncCuadrado(x int) <-chan int {
 }
 
 func main() {
-	// TODO: crea varios futuros y recolecta sus resultados: f1, f2, f3
+	//crea varios futuros y recolecta sus resultados: f1, f2, f3
+	f1 := asyncCuadrado(2)
+	f2 := asyncCuadrado(4)
+	f3 := asyncCuadrado(6)
 
-	// TODO: Opción 1: esperar cada futuro secuencialmente
+	//Opción 1: esperar cada futuro secuencialmente
+	fmt.Println("Resultado 1:", <-f1)
+	fmt.Println("Resultado 2:", <-f2)
+	fmt.Println("Resultado 3:", <-f3)
 
-	// TODO: Opción 2: fan-in (combinar múltiples canales)
+	//Opción 2: fan-in (combinar múltiples canales)
 	// Pista: crea una función fanIn que recibe múltiples <-chan int y retorna un único <-chan int
 	// que emita todos los valores. Requiere goroutines y cerrar el canal de salida cuando todas terminen.
+	fmt.Println("Recolectando resultados mediante Fan-In...")
+	todoEnUno := fanIn(f1, f2, f3)
+	for res := range todoEnUno {
+		fmt.Printf("Recibido futuro: %d\n", res)
+	}
+	fmt.Println("Todos los futuros recolectados.")
 
 }
