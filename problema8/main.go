@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -14,12 +15,37 @@ func asyncCuadrado(x int) <-chan int {
 	go func() {
 		defer close(ch)
 		time.Sleep(500 * time.Millisecond)
-		ch <- x * x
-		//simular trabajo
 
+		//simular trabajo
 		ch <- x * x
 	}()
 	return ch
+}
+
+func fanIn(canales ...<-chan int) <-chan int {
+	salida := make(chan int)
+	var wg sync.WaitGroup
+
+	// Función para mover datos de cada canal al canal de salida
+	multiplexar := func(c <-chan int) {
+		defer wg.Done()
+		for valor := range c {
+			salida <- valor
+		}
+	}
+
+	wg.Add(len(canales))
+	for _, c := range canales {
+		go multiplexar(c)
+	}
+
+	// Goroutine para cerrar el canal de salida cuando todos terminen
+	go func() {
+		wg.Wait()
+		close(salida)
+	}()
+
+	return salida
 }
 
 func main() {
@@ -42,5 +68,4 @@ func main() {
 		fmt.Printf("Recibido futuro: %d\n", res)
 	}
 	fmt.Println("Todos los futuros recolectados.")
-
 }
